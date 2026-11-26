@@ -114,4 +114,4 @@ In `Auto (Antigravity Theme)` mode, the mini bar reads only your local appearanc
 
 ## License
 
-[MIT License](LICENSE).
+[MIT](LICENSE) © QufuLabs
