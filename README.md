@@ -112,6 +112,6 @@ The Antigravity **MCP App plugin** (`dist/mcp-server.mjs` + `dist/ui.html`) is c
 **Why does it match my custom Antigravity theme automatically?**
 In `Auto (Antigravity Theme)` mode, the mini bar reads only your local appearance preference (`themeMode`, `customThemeSeedsDark`, `customThemeSeedsLight`) from `~/.gemini/config/config.json` and adapts its surface, border, and hover palette in real time.
 
-## Credits
+## License
 
-Built with [Google Antigravity](https://github.com/google-antigravity). Licensed under the [MIT License](LICENSE).
+[MIT License](LICENSE).
