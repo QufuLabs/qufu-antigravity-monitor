@@ -42,15 +42,13 @@ Displays real-time remaining usage percentages and local 1-second reset countdow
 
 ## Installation
 
-### Option 1: Prebuilt Release (Recommended)
+### Option 1: Direct Install (Recommended)
 
-Download the latest release assets from [GitHub Releases](https://github.com/QufuLabs/qufu-antigravity-monitor/releases):
-
-- **Windows Always-on-Top Mini Bar:** Run `QufuAntigravityMonitor-win-x64.exe` directly (no installer or admin rights required).
-- **Antigravity MCP App Plugin:** Extract `qufu-antigravity-monitor-plugin.zip` and install via:
+- **Antigravity MCP App Plugin (1 command):**
   ```powershell
-  agy plugin install .\qufu-antigravity-monitor-plugin
+  agy plugin install https://github.com/QufuLabs/qufu-antigravity-monitor
   ```
+- **Windows Always-on-Top Mini Bar:** Download and run `QufuAntigravityMonitor-win-x64.exe` from [GitHub Releases](https://github.com/QufuLabs/qufu-antigravity-monitor/releases) (no installer or admin rights required).
 
 ### Option 2: Build & Install from Source
 
