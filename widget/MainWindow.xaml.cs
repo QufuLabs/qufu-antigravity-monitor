@@ -253,19 +253,45 @@ public partial class MainWindow : Window
         }
     }
 
+    private void ToggleExpanded()
+    {
+        _settings.Expanded = !_settings.Expanded;
+        ApplyExpandedState(_settings.Expanded);
+        WidgetSettingsStore.Save(_settings);
+        RenderSnapshot();
+
+        // Keep expanded drawer inside screen bounds when near bottom/right edges.
+        UpdateLayout();
+        var work = SystemParameters.WorkArea;
+        if (ActualWidth > 0 && Left + ActualWidth > work.Right - 4)
+        {
+            Left = Math.Max(work.Left + 4, work.Right - ActualWidth - 4);
+        }
+        if (ActualHeight > 0 && Top + ActualHeight > work.Bottom - 4)
+        {
+            Top = Math.Max(work.Top + 1, work.Bottom - ActualHeight - 4);
+        }
+    }
+
     private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (e.ChangedButton == MouseButton.Left)
+        if (e.ChangedButton != MouseButton.Left) return;
+
+        if (e.ClickCount == 2)
         {
-            try
-            {
-                DragMove();
-                SavePosition();
-            }
-            catch
-            {
-                // Ignore DragMove race when clicking buttons.
-            }
+            e.Handled = true;
+            ToggleExpanded();
+            return;
+        }
+
+        try
+        {
+            DragMove();
+            SavePosition();
+        }
+        catch
+        {
+            // Ignore DragMove race when clicking buttons.
         }
     }
 
@@ -278,10 +304,7 @@ public partial class MainWindow : Window
     private void ExpandBtn_Click(object sender, RoutedEventArgs e)
     {
         e.Handled = true;
-        _settings.Expanded = !_settings.Expanded;
-        ApplyExpandedState(_settings.Expanded);
-        WidgetSettingsStore.Save(_settings);
-        RenderSnapshot();
+        ToggleExpanded();
     }
 
     private void ApplyExpandedState(bool expanded)
