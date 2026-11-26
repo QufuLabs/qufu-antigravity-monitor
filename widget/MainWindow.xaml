@@ -65,7 +65,7 @@
                  Height="6"
                  Margin="0,0,7,0"
                  VerticalAlignment="Center"
-                 ToolTip="Qufu Usage Monitor (Right-click for Theme, Position &amp; Interval)" />
+                 ToolTip="Qufu Antigravity Monitor (Right-click for Theme, Position &amp; Interval)" />
 
         <TextBlock x:Name="PlanCompactText"
                    Visibility="Collapsed"

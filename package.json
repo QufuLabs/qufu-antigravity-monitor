@@ -1,9 +1,15 @@
 {
-  "name": "qufu-usage-monitor",
+  "name": "qufu-antigravity-monitor",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Local, zero-telemetry model quota monitor plugin for Google Antigravity 2.0 Desktop.",
+  "license": "MIT",
+  "description": "Local, zero-telemetry model quota monitor plugin (MCP Apps) and Windows always-on-top mini bar for Google Antigravity 2.0 Desktop.",
+  "homepage": "https://github.com/QufuLabs/qufu-antigravity-monitor",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/QufuLabs/qufu-antigravity-monitor.git"
+  },
   "scripts": {
     "build": "node scripts/build.mjs",
     "test": "node --test tests/*.test.mjs",

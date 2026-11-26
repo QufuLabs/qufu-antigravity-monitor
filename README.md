@@ -1,30 +1,34 @@
 # Qufu Antigravity Monitor
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Platform: Windows 10/11](https://img.shields.io/badge/Platform-Windows%2010%2F11-blue.svg)](#requirements)
+[![Antigravity 2.0](https://img.shields.io/badge/Antigravity-2.0%20Desktop-informational.svg)](https://antigravity.google)
+
 Local, lightweight, zero-telemetry model quota monitor plugin (**MCP Apps**) and optional Windows always-on-top mini bar for **Google Antigravity 2.0 Desktop**.
 
 Displays real-time remaining usage percentages and local 1-second reset countdowns for:
 
-- **Gemini Models** (5-Hour Limit and Weekly Limit)
-- **Claude & GPT Models** (5-Hour Limit and Weekly Limit)
+- **Gemini Models** — 5-Hour Limit and Weekly Limit
+- **Claude & GPT Models** — 5-Hour Limit and Weekly Limit
 
-## Highlights
+## Features
 
-- **Zero model tokens consumed:** Reads official `agy -p "/usage" --output-format json` (`num_turns: 0`, `total_tokens: 0`).
-- **Two seamless views:**
-  - **Native Antigravity MCP App Plugin:** Open in the right-hand Auxiliary Side Panel (`aux_pane`, pinnable via Right-click → **Pin Tab**) or full-width from **Plugins** in the left sidebar (`global`).
-  - **Windows Always-on-Top Mini Bar (`QufuUsageWidget.exe`):** Compact single-line bar that sits cleanly in Antigravity's top bar or sidebar area — zero clicks required while coding.
-- **Automatic Antigravity Theme Sync:** Reads Antigravity's active theme mode and custom theme color palette (`customThemeSeedsDark` / `customThemeSeedsLight`) to match your exact Antigravity theme automatically.
-- **Customizable Right-Click Menu:**
+- **Zero model tokens consumed:** Uses the official `agy -p "/usage" --output-format json` command (`num_turns: 0`, `total_tokens: 0`).
+- **Two integrated views:**
+  - **Native Antigravity MCP App Plugin:** Open beside any conversation in the Auxiliary Side Panel (`aux_pane`, pinnable via Right-click → **Pin Tab**) or full-width from **Plugins** in the left sidebar (`global`).
+  - **Windows Always-on-Top Mini Bar:** Borderless single-line bar that blends into Antigravity's top bar or sidebar area — always visible without clicking away from your chat.
+- **Automatic Antigravity Theme Sync:** Reads Antigravity's active theme mode and custom color palette (`customThemeSeedsDark` / `customThemeSeedsLight`) to match your exact Antigravity theme automatically.
+- **Right-Click Controls:**
   - Double-click anywhere on the bar to expand/collapse detailed 4-bar view.
-  - **Position presets:** Topbar Right, Bottom-Left (Above Settings), Bottom-Right, or drag anywhere.
+  - **Position:** Topbar Right, Bottom-Left (Above Settings), Bottom-Right, or drag anywhere.
   - **Theme:** Auto (Antigravity Theme), Light, or Dark.
-  - **Opacity:** `100%`, `90%`, `80%`, `70%`, `60%` (automatically restores to `100%` on hover).
+  - **Opacity:** `100%`, `90%`, `80%`, `70%`, `60%` (restores to `100%` on hover).
   - **Refresh Interval:** `30s`, `60s` (default), `2m`, `5m`.
-  - **Show only when Antigravity is active:** Auto-hide when switching to other apps, reappear when Antigravity is focused.
-  - **Start with Windows:** Optional single-click user-level startup toggle (no admin required).
-  - **Auto-exit when Antigravity closes:** Prevents lingering background processes.
+  - **Show only when Antigravity is active:** Auto-hides when switching to other apps.
+  - **Start with Windows:** Optional user-level startup toggle (no admin rights required).
+  - **Auto-exit when Antigravity closes:** Leaves no lingering background processes.
 
-> **Note on Subscription Plan:** On Antigravity CLI `v1.5.17`, `agy -p "/usage" --output-format json` returns quota groups and buckets without a subscription tier field. Qufu Antigravity Monitor displays the plan automatically if returned by future CLI versions and never fabricates data.
+> **Note on Subscription Plan:** On Antigravity CLI `v1.5.17`, `agy -p "/usage" --output-format json` returns quota groups and buckets without a subscription tier field. Qufu Antigravity Monitor displays the plan automatically if exposed by future CLI versions and never fabricates missing data.
 
 ## Requirements
 
@@ -33,28 +37,46 @@ Displays real-time remaining usage percentages and local 1-second reset countdow
   ```powershell
   irm https://antigravity.google/cli/install.ps1 | iex
   ```
-- **Node.js 20+** (for building the MCP plugin from source) and **.NET 8 Desktop Runtime / SDK** (for the Windows mini bar)
+- **.NET 8 Desktop Runtime** (for the Windows Always-on-Top mini bar)
+- **Node.js 20+** (only required when building from source)
 
-## Quick Install (Windows)
+## Installation
+
+### Option 1: Prebuilt Release (Recommended)
+
+Download the latest release assets from [GitHub Releases](https://github.com/QufuLabs/qufu-antigravity-monitor/releases):
+
+- **Windows Always-on-Top Mini Bar:** Run `QufuAntigravityMonitor-win-x64.exe` directly (no installer or admin rights required).
+- **Antigravity MCP App Plugin:** Extract `qufu-antigravity-monitor-plugin.zip` and install via:
+  ```powershell
+  agy plugin install .\qufu-antigravity-monitor-plugin
+  ```
+
+### Option 2: Build & Install from Source
 
 ```powershell
-# 1. Build, strictly validate, and install the Antigravity MCP App plugin globally
+git clone https://github.com/QufuLabs/qufu-antigravity-monitor.git
+cd qufu-antigravity-monitor
+
+# 1. Build, strictly validate, and install the Antigravity MCP App plugin
 powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1
 
-# 2. Build & start the Always-on-Top mini bar
+# 2. Build and launch the Windows Always-on-Top mini bar
 powershell -ExecutionPolicy Bypass -File .\scripts\start-widget.ps1
 
-# 3. Create Desktop & Start Menu shortcuts (with custom icon)
+# 3. Create Desktop and Start Menu shortcuts
 powershell -ExecutionPolicy Bypass -File .\scripts\create-shortcuts.ps1
 ```
 
-To uninstall completely (plugin, shortcuts, and Windows startup entry):
+### Uninstall
+
+Removes the plugin, Desktop/Start Menu shortcuts, and Windows startup entry (if enabled):
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\uninstall.ps1
 ```
 
-## Development & Tests
+## Development & Testing
 
 ```powershell
 npm install
@@ -63,16 +85,15 @@ npm test
 dotnet build .\widget\QufuUsageWidget.csproj -c Release
 ```
 
-## Security Guarantees
+## Security & Privacy
 
-- No third-party servers, telemetry, or analytics.
-- Never reads OAuth tokens, refresh tokens, cookies, passwords, or API keys.
-- Never reads workspace files or conversation history.
-- Never modifies Antigravity binaries, `app.asar`, source files, or quota limits.
-- Never uses remote debugging or DevTools injection.
-- Never auto-downloads or auto-updates code.
-- Never flashes visible CMD/PowerShell windows (`shell: false`, `windowsHide: true`, `CreateNoWindow = true`).
-- Shared single-flight cache with timeout (`15s`) and exponential backoff (`15s` up to `300s`).
+- **Zero third-party servers, telemetry, or analytics.**
+- **Zero credential access:** Never reads OAuth tokens, refresh tokens, cookies, passwords, or API keys.
+- **Zero workspace/chat access:** Never reads project files or conversation history.
+- **Non-invasive:** Never modifies Antigravity binaries, `app.asar`, or model limits; never uses DevTools or remote debugging.
+- **No auto-downloads or auto-updates.**
+- **No console window flashes:** Spawns `agy` directly with `shell: false` / `windowsHide: true` / `CreateNoWindow = true`.
+- **Resilient polling:** Single-flight concurrency lock, shared cache, `15s` timeout, exponential backoff (`15s`–`300s`), and honest stale indicators when offline.
 
 ## Credits
 

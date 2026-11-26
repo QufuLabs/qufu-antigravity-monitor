@@ -26,7 +26,7 @@ export function getToolDefinitions() {
       name: 'usage_monitor',
       title: 'Usage Monitor',
       description:
-        'Open Qufu Usage Monitor to display real-time Gemini, Claude, and GPT 5-hour and weekly quota limits.',
+        'Open Qufu Antigravity Monitor to display real-time Gemini, Claude, and GPT 5-hour and weekly quota limits.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -85,7 +85,7 @@ export function getToolDefinitions() {
     {
       name: 'set_config',
       title: 'Set Monitor Configuration',
-      description: 'Persist auto-refresh interval settings for Qufu Usage Monitor.',
+      description: 'Persist auto-refresh interval settings for Qufu Antigravity Monitor.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -251,7 +251,7 @@ export function createMcpHandler({ usageService, loadUiHtml }) {
               resources: [
                 {
                   uri: UI_RESOURCE_URI,
-                  name: 'Qufu Usage Monitor',
+                  name: 'Qufu Antigravity Monitor',
                   description: 'Compact local model quota monitor interface.',
                   mimeType: UI_MIME_TYPE,
                   _meta: {

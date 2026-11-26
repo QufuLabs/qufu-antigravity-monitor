@@ -417,9 +417,9 @@ export function formatResetCountdown(resetAt, isUnused, nowMs = Date.now()) {
  * @returns {string}
  */
 export function formatPlainTextSummary(snapshot, nowMs = Date.now()) {
-  if (!snapshot) return 'Qufu Usage Monitor: No data available.';
+  if (!snapshot) return 'Qufu Antigravity Monitor: No data available.';
 
-  const lines = ['Qufu Usage Monitor'];
+  const lines = ['Qufu Antigravity Monitor'];
   if (snapshot.data?.plan) {
     lines.push(`Plan: ${snapshot.data.plan}`);
   }

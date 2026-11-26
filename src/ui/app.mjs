@@ -398,7 +398,7 @@ function applySnapshot(snapshot) {
   updateFooterAndCountdowns();
 }
 
-const app = new App({ name: 'Qufu Usage Monitor', version: '1.0.0' }, {});
+const app = new App({ name: 'Qufu Antigravity Monitor', version: '1.0.0' }, {});
 
 async function fetchUsage(force) {
   if (state.loading) return;

@@ -21,7 +21,7 @@ if (-not $AgyExe) {
 }
 
 if (-not $SkipBuild) {
-  Write-Host "Building Qufu Usage Monitor..."
+  Write-Host "Building Qufu Antigravity Monitor..."
   Push-Location $ProjectRoot
   try {
     if (-not (Test-Path (Join-Path $ProjectRoot "node_modules"))) {
@@ -52,7 +52,7 @@ try {
     throw "Plugin validation failed with exit code $LASTEXITCODE"
   }
 
-  Write-Host "Installing Qufu Usage Monitor via agy plugin install..."
+  Write-Host "Installing Qufu Antigravity Monitor via agy plugin install..."
   $prevPref = $ErrorActionPreference
   $ErrorActionPreference = "Continue"
   try {
@@ -94,7 +94,7 @@ try {
 
   Write-Host "Verifying installed plugins..."
   & $AgyExe plugin list
-  Write-Host "`nDone. Open Qufu Usage Monitor in Antigravity Desktop from:"
+  Write-Host "`nDone. Open Qufu Antigravity Monitor in Antigravity Desktop from:"
   Write-Host "  - Side Panel: Overview > Plugins > Usage Monitor (or right-click tab > Pin Tab)"
   Write-Host "  - Left Sidebar: Plugins > Usage Monitor"
 } finally {

@@ -39,8 +39,8 @@ public partial class App : System.Windows.Application
         {
             LogError("OnStartup", ex);
             System.Windows.MessageBox.Show(
-                $"Qufu Usage Monitor failed to start:\n{ex.Message}",
-                "Qufu Usage Monitor",
+                $"Qufu Antigravity Monitor failed to start:\n{ex.Message}",
+                "Qufu Antigravity Monitor",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error
             );
