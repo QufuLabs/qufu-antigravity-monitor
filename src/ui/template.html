@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Qufu Usage Monitor</title>
+    <style>/*__INLINE_CSS__*/</style>
+  </head>
+  <body>
+    <main class="monitor" aria-label="Qufu Usage Monitor">
+      <header class="toolbar">
+        <div class="toolbar-left">
+          <span id="plan-tag" class="plan-tag hidden" title="Active subscription plan"></span>
+          <span id="title-label" class="group-name">Usage Monitor</span>
+        </div>
+        <div class="toolbar-right">
+          <select id="interval-select" class="interval-select" aria-label="Auto-refresh interval" title="Auto-refresh interval">
+            <option value="30">30s</option>
+            <option value="60" selected>60s</option>
+            <option value="120">2m</option>
+            <option value="300">5m</option>
+          </select>
+          <button id="refresh-btn" class="refresh-btn" type="button" aria-label="Refresh usage quota" title="Refresh now">
+            <svg class="refresh-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M13.5 8a5.5 5.5 0 1 1-1.35-3.62" />
+              <path d="M13.5 2.75v2.75h-2.75" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <div id="notice-box" class="notice hidden" role="status" aria-live="polite"></div>
+
+      <section id="loading-view" class="skeleton" aria-label="Loading quota data">
+        <div class="skeleton-line short"></div>
+        <div class="skeleton-line"></div>
+        <div class="skeleton-line short"></div>
+        <div class="skeleton-line"></div>
+      </section>
+
+      <section id="groups-container" class="groups hidden" aria-label="Model quota limits"></section>
+
+      <footer class="footer">
+        <span class="footer-left">
+          <span id="status-dot" class="status-dot loading" aria-hidden="true"></span>
+          <span id="updated-text">Loading...</span>
+        </span>
+        <span id="next-sync-text" class="footer-right"></span>
+      </footer>
+    </main>
+    <script type="module">/*__INLINE_JS__*/</script>
+  </body>
+</html>

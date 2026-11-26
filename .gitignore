@@ -1,0 +1,11 @@
+node_modules/
+dist/
+widget/bin/
+widget/obj/
+*.log
+.DS_Store
+Thumbs.db
+.env
+.env.*
+coverage/
+tmp/

@@ -1,0 +1,19 @@
+{
+  "name": "qufu-usage-monitor",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local, zero-telemetry model quota monitor plugin for Google Antigravity 2.0 Desktop.",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "check": "npm run build && npm test"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/ext-apps": "2.0.4",
+    "esbuild": "0.28.2"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

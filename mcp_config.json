@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "monitor": {
+      "command": "node",
+      "args": [
+        "${PLUGIN_ROOT}/dist/mcp-server.mjs"
+      ],
+      "timeoutSeconds": 60
+    }
+  }
+}

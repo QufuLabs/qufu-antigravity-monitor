@@ -1,0 +1,237 @@
+<Window x:Class="QufuUsageWidget.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Qufu Antigravity Monitor"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown">
+
+  <Window.Resources>
+    <SolidColorBrush x:Key="IconBtnHoverBrush" Color="#14000000" />
+    <SolidColorBrush x:Key="IconBtnPressedBrush" Color="#24000000" />
+
+    <Style x:Key="FlatIconButton" TargetType="Button">
+      <Setter Property="Width" Value="20" />
+      <Setter Property="Height" Value="20" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="Bd"
+                    Background="{TemplateBinding Background}"
+                    CornerRadius="5"
+                    SnapsToDevicePixels="True">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource IconBtnHoverBrush}" />
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource IconBtnPressedBrush}" />
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.4" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </Window.Resources>
+
+  <Border x:Name="RootBorder"
+          CornerRadius="7"
+          BorderThickness="1"
+          Padding="9,4"
+          Margin="4">
+    <Border.Effect>
+      <DropShadowEffect BlurRadius="8" ShadowDepth="1" Opacity="0.14" Color="#000000" />
+    </Border.Effect>
+
+    <StackPanel Orientation="Vertical">
+      <!-- Compact single-line topbar strip -->
+      <StackPanel x:Name="CompactBar" Orientation="Horizontal" VerticalAlignment="Center">
+        <Ellipse x:Name="StatusDot"
+                 Width="6"
+                 Height="6"
+                 Margin="0,0,7,0"
+                 VerticalAlignment="Center"
+                 ToolTip="Qufu Usage Monitor (Right-click for Theme, Position &amp; Interval)" />
+
+        <TextBlock x:Name="PlanCompactText"
+                   Visibility="Collapsed"
+                   FontSize="11"
+                   FontWeight="SemiBold"
+                   Margin="0,0,7,0"
+                   VerticalAlignment="Center" />
+
+        <!-- Gemini group -->
+        <TextBlock x:Name="GrpGeminiLbl" Text="Gemini" FontSize="11" FontWeight="SemiBold" Margin="0,0,5,0" VerticalAlignment="Center" />
+
+        <StackPanel x:Name="PillG5h" Orientation="Horizontal" VerticalAlignment="Center" Background="Transparent">
+          <TextBlock x:Name="LblG5h" Text="5h" FontSize="10.5" Margin="0,0,3,0" VerticalAlignment="Center" />
+          <TextBlock x:Name="ValG5h" Text="--" FontSize="11.5" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <TextBlock x:Name="RstG5h" Text="" FontSize="10.5" Margin="3,0,0,0" VerticalAlignment="Center" />
+        </StackPanel>
+
+        <TextBlock x:Name="DotSep1" Text="·" FontSize="11" Margin="5,0" VerticalAlignment="Center" />
+
+        <StackPanel x:Name="PillGw" Orientation="Horizontal" VerticalAlignment="Center" Background="Transparent">
+          <TextBlock x:Name="LblGw" Text="7d" FontSize="10.5" Margin="0,0,3,0" VerticalAlignment="Center" />
+          <TextBlock x:Name="ValGw" Text="--" FontSize="11.5" FontWeight="SemiBold" VerticalAlignment="Center" />
+        </StackPanel>
+
+        <Border x:Name="SepMid" Width="1" Height="11" Margin="8,0" VerticalAlignment="Center" />
+
+        <!-- Claude & GPT group -->
+        <TextBlock x:Name="GrpClaudeLbl" Text="Claude/GPT" FontSize="11" FontWeight="SemiBold" Margin="0,0,5,0" VerticalAlignment="Center" />
+
+        <StackPanel x:Name="PillC5h" Orientation="Horizontal" VerticalAlignment="Center" Background="Transparent">
+          <TextBlock x:Name="LblC5h" Text="5h" FontSize="10.5" Margin="0,0,3,0" VerticalAlignment="Center" />
+          <TextBlock x:Name="ValC5h" Text="--" FontSize="11.5" FontWeight="SemiBold" VerticalAlignment="Center" />
+        </StackPanel>
+
+        <TextBlock x:Name="DotSep2" Text="·" FontSize="11" Margin="5,0" VerticalAlignment="Center" />
+
+        <StackPanel x:Name="PillCw" Orientation="Horizontal" VerticalAlignment="Center" Background="Transparent">
+          <TextBlock x:Name="LblCw" Text="7d" FontSize="10.5" Margin="0,0,3,0" VerticalAlignment="Center" />
+          <TextBlock x:Name="ValCw" Text="--" FontSize="11.5" FontWeight="SemiBold" VerticalAlignment="Center" />
+        </StackPanel>
+
+        <!-- Refresh button -->
+        <Button x:Name="RefreshBtn"
+                Style="{StaticResource FlatIconButton}"
+                Margin="7,0,1,0"
+                ToolTip="Refresh quota now (0 tokens)"
+                Click="RefreshBtn_Click">
+          <Path x:Name="RefreshIcon"
+                Data="M 11.5,6 A 4.5,4.5 0 1 1 10.3,2.9 M 11.5,1.5 L 11.5,4.2 L 8.8,4.2"
+                StrokeThickness="1.35"
+                StrokeStartLineCap="Round"
+                StrokeEndLineCap="Round"
+                StrokeLineJoin="Round"
+                Width="11.5"
+                Height="11.5"
+                Stretch="Uniform" />
+        </Button>
+
+        <!-- Expand / collapse button -->
+        <Button x:Name="ExpandBtn"
+                Style="{StaticResource FlatIconButton}"
+                ToolTip="Show detailed progress bars and countdowns"
+                Click="ExpandBtn_Click">
+          <Path x:Name="ExpandIcon"
+                Data="M 2,4 L 6,8 L 10,4"
+                StrokeThickness="1.4"
+                StrokeStartLineCap="Round"
+                StrokeEndLineCap="Round"
+                StrokeLineJoin="Round"
+                Width="10"
+                Height="10"
+                Stretch="Uniform" />
+        </Button>
+      </StackPanel>
+
+      <!-- Expanded detail panel -->
+      <StackPanel x:Name="DetailPanel" Visibility="Collapsed" Margin="0,8,0,2" MinWidth="296">
+        <Border x:Name="DetailDividerTop" Height="1" Margin="0,0,0,8" />
+
+        <Border x:Name="NoticeBorder"
+                Visibility="Collapsed"
+                CornerRadius="5"
+                BorderThickness="1"
+                Padding="7,5"
+                Margin="0,0,0,8">
+          <TextBlock x:Name="NoticeText" FontSize="11" TextWrapping="Wrap" MaxWidth="288" />
+        </Border>
+
+        <!-- Gemini Models -->
+        <TextBlock x:Name="HeaderGemini" Text="Gemini Models" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,5" />
+
+        <Grid Margin="0,0,0,2">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBlock x:Name="DetLblG5h" Text="5-Hour Limit" FontSize="11" />
+          <TextBlock x:Name="DetRstG5h" Grid.Column="1" Text="--" FontSize="10.5" HorizontalAlignment="Right" Margin="8,0,8,0" />
+          <TextBlock x:Name="DetValG5h" Grid.Column="2" Text="--" FontSize="11.5" FontWeight="SemiBold" MinWidth="32" TextAlignment="Right" />
+        </Grid>
+        <Border x:Name="TrackG5h" Height="4" CornerRadius="2" Margin="0,0,0,7" ClipToBounds="True">
+          <Border x:Name="FillG5h" Height="4" CornerRadius="2" HorizontalAlignment="Left" Width="0" />
+        </Border>
+
+        <Grid Margin="0,0,0,2">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBlock x:Name="DetLblGw" Text="Weekly Limit" FontSize="11" />
+          <TextBlock x:Name="DetRstGw" Grid.Column="1" Text="--" FontSize="10.5" HorizontalAlignment="Right" Margin="8,0,8,0" />
+          <TextBlock x:Name="DetValGw" Grid.Column="2" Text="--" FontSize="11.5" FontWeight="SemiBold" MinWidth="32" TextAlignment="Right" />
+        </Grid>
+        <Border x:Name="TrackGw" Height="4" CornerRadius="2" Margin="0,0,0,9" ClipToBounds="True">
+          <Border x:Name="FillGw" Height="4" CornerRadius="2" HorizontalAlignment="Left" Width="0" />
+        </Border>
+
+        <Border x:Name="DetailDividerMid" Height="1" Margin="0,0,0,8" />
+
+        <!-- Claude & GPT Models -->
+        <TextBlock x:Name="HeaderClaude" Text="Claude &amp; GPT Models" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,5" />
+
+        <Grid Margin="0,0,0,2">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBlock x:Name="DetLblC5h" Text="5-Hour Limit" FontSize="11" />
+          <TextBlock x:Name="DetRstC5h" Grid.Column="1" Text="--" FontSize="10.5" HorizontalAlignment="Right" Margin="8,0,8,0" />
+          <TextBlock x:Name="DetValC5h" Grid.Column="2" Text="--" FontSize="11.5" FontWeight="SemiBold" MinWidth="32" TextAlignment="Right" />
+        </Grid>
+        <Border x:Name="TrackC5h" Height="4" CornerRadius="2" Margin="0,0,0,7" ClipToBounds="True">
+          <Border x:Name="FillC5h" Height="4" CornerRadius="2" HorizontalAlignment="Left" Width="0" />
+        </Border>
+
+        <Grid Margin="0,0,0,2">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBlock x:Name="DetLblCw" Text="Weekly Limit" FontSize="11" />
+          <TextBlock x:Name="DetRstCw" Grid.Column="1" Text="--" FontSize="10.5" HorizontalAlignment="Right" Margin="8,0,8,0" />
+          <TextBlock x:Name="DetValCw" Grid.Column="2" Text="--" FontSize="11.5" FontWeight="SemiBold" MinWidth="32" TextAlignment="Right" />
+        </Grid>
+        <Border x:Name="TrackCw" Height="4" CornerRadius="2" Margin="0,0,0,8" ClipToBounds="True">
+          <Border x:Name="FillCw" Height="4" CornerRadius="2" HorizontalAlignment="Left" Width="0" />
+        </Border>
+
+        <Border x:Name="DetailDividerBot" Height="1" Margin="0,0,0,6" />
+
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBlock x:Name="FooterUpdated" Text="Loading..." FontSize="10" />
+          <TextBlock x:Name="FooterInterval" Grid.Column="1" Text="60s · Right-click for menu" FontSize="10" />
+        </Grid>
+      </StackPanel>
+    </StackPanel>
+  </Border>
+</Window>

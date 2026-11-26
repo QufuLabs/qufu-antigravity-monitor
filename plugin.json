@@ -1,0 +1,24 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "qufu-usage-monitor",
+  "displayName": "Qufu Antigravity Monitor",
+  "version": "1.0.0",
+  "description": "Compact local model quota monitor for Gemini, Claude, and GPT 5-hour and weekly usage limits.",
+  "logo": "assets/logo.svg",
+  "suggestedPrompts": [
+    "Open Qufu Usage Monitor",
+    "Check my current Gemini and Claude/GPT quota limits",
+    "Refresh model usage limits"
+  ],
+  "author": {
+    "name": "Qufu"
+  },
+  "license": "MIT",
+  "keywords": [
+    "usage",
+    "quota",
+    "monitor",
+    "limits",
+    "local"
+  ]
+}
