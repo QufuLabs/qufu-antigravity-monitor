@@ -39,3 +39,9 @@ foreach ($p in $shortcutPaths) {
     Write-Host "Removed shortcut: $p"
   }
 }
+
+$runKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
+if (Get-ItemProperty -Path $runKey -Name "QufuAntigravityMonitor" -ErrorAction SilentlyContinue) {
+  Remove-ItemProperty -Path $runKey -Name "QufuAntigravityMonitor" -ErrorAction SilentlyContinue
+  Write-Host "Removed Windows startup entry."
+}

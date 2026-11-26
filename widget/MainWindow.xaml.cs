@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
@@ -14,22 +15,42 @@ using MediaBrush = System.Windows.Media.SolidColorBrush;
 
 namespace QufuUsageWidget;
 
+public sealed record AntigravityThemeInfo(
+    bool IsDark,
+    string? BackgroundHex,
+    string? ForegroundHex,
+    string? PrimaryHex
+);
+
 public partial class MainWindow : Window
 {
+    private const string RunRegistrySubKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
+    private const string RunRegistryValueName = "QufuAntigravityMonitor";
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
     private readonly AgyQuotaClient _client = new();
     private readonly CancellationTokenSource _shutdownCts = new();
     private readonly DispatcherTimer _tickTimer;
     private readonly DispatcherTimer _refreshTimer;
     private readonly DispatcherTimer _watchTimer;
+    private readonly DispatcherTimer _focusTimer;
     private readonly WidgetSettings _settings;
+    private readonly int _currentPid = Environment.ProcessId;
 
     private Forms.NotifyIcon? _trayIcon;
     private QuotaSnapshot? _snapshot;
     private bool _isFetching;
     private bool _sawAntigravityRunning;
     private bool _isDark;
+    private bool _isMouseOverWidget;
     private DateTime _lastConfigMtimeUtc = DateTime.MinValue;
-    private bool? _cachedAntigravityDark;
+    private AntigravityThemeInfo? _cachedAntigravityTheme;
+    private string _appliedThemeSignature = string.Empty;
 
     public MainWindow()
     {
@@ -40,11 +61,14 @@ public partial class MainWindow : Window
 
         ApplyExpandedState(_settings.Expanded);
         ApplyTheme();
+        ApplyOpacity();
         BuildContextMenu();
         SetupTrayIcon();
 
         Loaded += MainWindow_Loaded;
         Closing += MainWindow_Closing;
+        MouseEnter += (_, _) => { _isMouseOverWidget = true; ApplyOpacity(); };
+        MouseLeave += (_, _) => { _isMouseOverWidget = false; ApplyOpacity(); };
 
         _tickTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _tickTimer.Tick += (_, _) => UpdateCountdownsAndFooter();
@@ -57,6 +81,13 @@ public partial class MainWindow : Window
         _watchTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
         _watchTimer.Tick += (_, _) => CheckThemeAndLifecycle();
         _watchTimer.Start();
+
+        _focusTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(350) };
+        _focusTimer.Tick += (_, _) => UpdateFocusVisibility();
+        if (_settings.OnlyWhenAntigravityActive)
+        {
+            _focusTimer.Start();
+        }
     }
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -85,6 +116,7 @@ public partial class MainWindow : Window
         _tickTimer.Stop();
         _refreshTimer.Stop();
         _watchTimer.Stop();
+        _focusTimer.Stop();
         _shutdownCts.Cancel();
         _client.AbortActive();
 
@@ -110,12 +142,57 @@ public partial class MainWindow : Window
         }
     }
 
+    private void UpdateFocusVisibility()
+    {
+        if (!_settings.OnlyWhenAntigravityActive)
+        {
+            if (Visibility != Visibility.Visible) Visibility = Visibility.Visible;
+            return;
+        }
+
+        if (_isMouseOverWidget || (ContextMenu?.IsOpen == true))
+        {
+            if (Visibility != Visibility.Visible) Visibility = Visibility.Visible;
+            return;
+        }
+
+        bool shouldShow = false;
+        try
+        {
+            var hwnd = GetForegroundWindow();
+            if (hwnd != IntPtr.Zero)
+            {
+                GetWindowThreadProcessId(hwnd, out uint fgPid);
+                if (fgPid == (uint)_currentPid)
+                {
+                    shouldShow = true;
+                }
+                else if (fgPid > 0)
+                {
+                    using var proc = Process.GetProcessById((int)fgPid);
+                    shouldShow = string.Equals(proc.ProcessName, "Antigravity", StringComparison.OrdinalIgnoreCase);
+                }
+            }
+        }
+        catch
+        {
+            shouldShow = true;
+        }
+
+        var nextVis = shouldShow ? Visibility.Visible : Visibility.Hidden;
+        if (Visibility != nextVis)
+        {
+            Visibility = nextVis;
+        }
+    }
+
     private void CheckThemeAndLifecycle()
     {
         if (_settings.ThemeMode == "auto")
         {
-            bool nextDark = DetectAutoDarkMode();
-            if (nextDark != _isDark)
+            var theme = ResolveAutoTheme();
+            var sig = $"{theme.IsDark}|{theme.BackgroundHex}|{theme.ForegroundHex}|{theme.PrimaryHex}";
+            if (sig != _appliedThemeSignature)
             {
                 ApplyTheme();
                 RenderSnapshot();
@@ -136,11 +213,11 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Reads ONLY Antigravity's public appearance preference (`userSettings.themeMode`)
-    /// from ~/.gemini/config/config.json (read-only, zero credentials).
-    /// Falls back to Windows AppsUseLightTheme when Antigravity is set to system/unspecified.
+    /// Reads ONLY Antigravity's public appearance settings (`themeMode`,
+    /// `customThemeSeedsDark`, `customThemeSeedsLight`) from ~/.gemini/config/config.json.
+    /// Zero credentials or tokens are ever read.
     /// </summary>
-    private bool DetectAutoDarkMode()
+    private AntigravityThemeInfo ResolveAutoTheme()
     {
         try
         {
@@ -152,11 +229,11 @@ public partial class MainWindow : Window
                 if (mtime != _lastConfigMtimeUtc)
                 {
                     _lastConfigMtimeUtc = mtime;
-                    _cachedAntigravityDark = ReadAntigravityThemeMode(cfgPath);
+                    _cachedAntigravityTheme = ReadAntigravityTheme(cfgPath);
                 }
-                if (_cachedAntigravityDark.HasValue)
+                if (_cachedAntigravityTheme is not null)
                 {
-                    return _cachedAntigravityDark.Value;
+                    return _cachedAntigravityTheme;
                 }
             }
         }
@@ -165,30 +242,53 @@ public partial class MainWindow : Window
             // Fall back to Windows theme.
         }
 
-        return DetectWindowsDarkMode();
+        return new AntigravityThemeInfo(DetectWindowsDarkMode(), null, null, null);
     }
 
-    private static bool? ReadAntigravityThemeMode(string cfgPath)
+    private static AntigravityThemeInfo? ReadAntigravityTheme(string cfgPath)
     {
         try
         {
             var json = File.ReadAllText(cfgPath);
             using var doc = JsonDocument.Parse(json);
-            if (doc.RootElement.TryGetProperty("userSettings", out var userSettings) &&
-                userSettings.ValueKind == JsonValueKind.Object &&
-                userSettings.TryGetProperty("themeMode", out var themeProp) &&
+            if (!doc.RootElement.TryGetProperty("userSettings", out var userSettings) ||
+                userSettings.ValueKind != JsonValueKind.Object)
+            {
+                return null;
+            }
+
+            bool? isDark = null;
+            if (userSettings.TryGetProperty("themeMode", out var themeProp) &&
                 themeProp.ValueKind == JsonValueKind.String)
             {
                 var mode = (themeProp.GetString() ?? string.Empty).ToUpperInvariant();
-                if (mode.Contains("LIGHT")) return false;
-                if (mode.Contains("DARK")) return true;
+                if (mode.Contains("LIGHT")) isDark = false;
+                else if (mode.Contains("DARK")) isDark = true;
             }
+
+            bool darkResolved = isDark ?? DetectWindowsDarkMode();
+            string seedKey = darkResolved ? "customThemeSeedsDark" : "customThemeSeedsLight";
+
+            string? bg = null;
+            string? fg = null;
+            string? primary = null;
+
+            if (userSettings.TryGetProperty(seedKey, out var seedEl) && seedEl.ValueKind == JsonValueKind.Object)
+            {
+                if (seedEl.TryGetProperty("background", out var bgEl) && bgEl.ValueKind == JsonValueKind.String)
+                    bg = bgEl.GetString()?.Trim();
+                if (seedEl.TryGetProperty("foregroundOverride", out var fgEl) && fgEl.ValueKind == JsonValueKind.String)
+                    fg = fgEl.GetString()?.Trim();
+                if (seedEl.TryGetProperty("primary", out var prEl) && prEl.ValueKind == JsonValueKind.String)
+                    primary = prEl.GetString()?.Trim();
+            }
+
+            return new AntigravityThemeInfo(darkResolved, bg, fg, primary);
         }
         catch
         {
-            // Ignore malformed or locked file during write.
+            return null;
         }
-        return null;
     }
 
     private static bool DetectWindowsDarkMode()
@@ -201,6 +301,47 @@ public partial class MainWindow : Window
         }
         catch { }
         return false;
+    }
+
+    private static bool IsStartWithWindowsEnabled()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(RunRegistrySubKey, writable: false);
+            var val = key?.GetValue(RunRegistryValueName) as string;
+            return !string.IsNullOrWhiteSpace(val);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static void SetStartWithWindows(bool enable)
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(RunRegistrySubKey, writable: true)
+                ?? Registry.CurrentUser.CreateSubKey(RunRegistrySubKey);
+            if (key is null) return;
+
+            if (enable)
+            {
+                var exePath = Environment.ProcessPath;
+                if (!string.IsNullOrWhiteSpace(exePath))
+                {
+                    key.SetValue(RunRegistryValueName, $"\"{exePath}\"");
+                }
+            }
+            else
+            {
+                key.DeleteValue(RunRegistryValueName, throwOnMissingValue: false);
+            }
+        }
+        catch
+        {
+            // Ignore registry permission errors cleanly.
+        }
     }
 
     private static bool IsWithinVirtualScreen(double left, double top)
@@ -260,7 +401,6 @@ public partial class MainWindow : Window
         WidgetSettingsStore.Save(_settings);
         RenderSnapshot();
 
-        // Keep expanded drawer inside screen bounds when near bottom/right edges.
         UpdateLayout();
         var work = SystemParameters.WorkArea;
         if (ActualWidth > 0 && Left + ActualWidth > work.Right - 4)
@@ -312,29 +452,106 @@ public partial class MainWindow : Window
         DetailPanel.Visibility = expanded ? Visibility.Visible : Visibility.Collapsed;
         ExpandIcon.Data = Geometry.Parse(expanded ? "M 2,8 L 6,4 L 10,8" : "M 2,4 L 6,8 L 10,4");
         ExpandBtn.ToolTip = expanded
-            ? "Hide detailed progress bars"
-            : "Show detailed progress bars and countdowns";
+            ? "Hide detailed progress bars (or double-click bar)"
+            : "Show detailed progress bars (or double-click bar)";
+    }
+
+    private void ApplyOpacity()
+    {
+        double target = _isMouseOverWidget ? 1.0 : Math.Clamp(_settings.OpacityPercent, 50, 100) / 100.0;
+        RootBorder.Opacity = target;
+    }
+
+    private static bool TryParseColor(string? hex, out MediaColor color)
+    {
+        color = default;
+        if (string.IsNullOrWhiteSpace(hex)) return false;
+        try
+        {
+            var obj = System.Windows.Media.ColorConverter.ConvertFromString(hex.Trim());
+            if (obj is MediaColor c)
+            {
+                color = c;
+                return true;
+            }
+        }
+        catch { }
+        return false;
+    }
+
+    private static MediaColor Blend(MediaColor a, MediaColor b, double t, byte alpha = 255)
+    {
+        t = Math.Clamp(t, 0.0, 1.0);
+        return MediaColor.FromArgb(
+            alpha,
+            (byte)Math.Round(a.R + (b.R - a.R) * t),
+            (byte)Math.Round(a.G + (b.G - a.G) * t),
+            (byte)Math.Round(a.B + (b.B - a.B) * t)
+        );
+    }
+
+    private static MediaBrush FrozenBrush(MediaColor c)
+    {
+        var b = new MediaBrush(c);
+        b.Freeze();
+        return b;
     }
 
     private void ApplyTheme()
     {
-        _isDark = _settings.ThemeMode switch
+        AntigravityThemeInfo themeInfo = _settings.ThemeMode switch
         {
-            "dark" => true,
-            "light" => false,
-            _ => DetectAutoDarkMode()
+            "dark" => new AntigravityThemeInfo(true, null, null, null),
+            "light" => new AntigravityThemeInfo(false, null, null, null),
+            _ => ResolveAutoTheme()
         };
 
-        Resources["IconBtnHoverBrush"] = BrushFromHex(_isDark ? "#1FFFFFFF" : "#12000000");
-        Resources["IconBtnPressedBrush"] = BrushFromHex(_isDark ? "#33FFFFFF" : "#22000000");
+        _isDark = themeInfo.IsDark;
+        _appliedThemeSignature = $"{themeInfo.IsDark}|{themeInfo.BackgroundHex}|{themeInfo.ForegroundHex}|{themeInfo.PrimaryHex}";
 
-        var bg = BrushFromHex(_isDark ? "#F218181B" : "#F7FAFAFA");
-        var border = BrushFromHex(_isDark ? "#3F3F46" : "#E4E4E7");
-        var divider = BrushFromHex(_isDark ? "#2E2E33" : "#E4E4E7");
-        var fg = BrushFromHex(_isDark ? "#F4F4F5" : "#18181B");
-        var fgMuted = BrushFromHex(_isDark ? "#A1A1AA" : "#52525B");
-        var fgSubtle = BrushFromHex(_isDark ? "#71717A" : "#71717A");
-        var track = BrushFromHex(_isDark ? "#27272A" : "#E4E4E7");
+        // Base colors from Antigravity's active theme seed when available, else native defaults.
+        MediaColor baseBg = TryParseColor(themeInfo.BackgroundHex, out var seedBg)
+            ? seedBg
+            : (MediaColor)System.Windows.Media.ColorConverter.ConvertFromString(_isDark ? "#18181B" : "#FAFAFA");
+
+        MediaColor baseFg = TryParseColor(themeInfo.ForegroundHex, out var seedFg)
+            ? seedFg
+            : (MediaColor)System.Windows.Media.ColorConverter.ConvertFromString(_isDark ? "#F4F4F5" : "#18181B");
+
+        bool hasAccent = TryParseColor(themeInfo.PrimaryHex, out var accentColor);
+
+        // Slightly elevate pill surface from raw canvas background so it stays crisp on the topbar.
+        MediaColor surfaceColor = _isDark
+            ? Blend(baseBg, MediaColor.FromRgb(255, 255, 255), 0.05, alpha: 244)
+            : Blend(baseBg, MediaColor.FromRgb(255, 255, 255), 0.20, alpha: 247);
+
+        MediaColor borderColor = hasAccent
+            ? Blend(Blend(baseBg, baseFg, _isDark ? 0.18 : 0.14), accentColor, 0.22)
+            : Blend(baseBg, baseFg, _isDark ? 0.20 : 0.14);
+
+        MediaColor dividerColor = Blend(baseBg, baseFg, _isDark ? 0.13 : 0.11);
+        MediaColor trackColor = Blend(baseBg, baseFg, _isDark ? 0.12 : 0.10);
+        MediaColor fgMutedColor = Blend(baseBg, baseFg, 0.68);
+        MediaColor fgSubtleColor = Blend(baseBg, baseFg, 0.48);
+
+        MediaColor hoverColor = hasAccent
+            ? MediaColor.FromArgb(_isDark ? (byte)36 : (byte)28, accentColor.R, accentColor.G, accentColor.B)
+            : MediaColor.FromArgb(_isDark ? (byte)32 : (byte)20, baseFg.R, baseFg.G, baseFg.B);
+
+        MediaColor pressedColor = hasAccent
+            ? MediaColor.FromArgb(_isDark ? (byte)56 : (byte)44, accentColor.R, accentColor.G, accentColor.B)
+            : MediaColor.FromArgb(_isDark ? (byte)52 : (byte)36, baseFg.R, baseFg.G, baseFg.B);
+
+        Resources["IconBtnHoverBrush"] = FrozenBrush(hoverColor);
+        Resources["IconBtnPressedBrush"] = FrozenBrush(pressedColor);
+
+        var bg = FrozenBrush(surfaceColor);
+        var border = FrozenBrush(borderColor);
+        var divider = FrozenBrush(dividerColor);
+        var fg = FrozenBrush(baseFg);
+        var fgMuted = FrozenBrush(fgMutedColor);
+        var fgSubtle = FrozenBrush(fgSubtleColor);
+        var track = FrozenBrush(trackColor);
 
         RootBorder.Background = bg;
         RootBorder.BorderBrush = border;
@@ -344,7 +561,7 @@ public partial class MainWindow : Window
         DetailDividerMid.Background = divider;
         DetailDividerBot.Background = divider;
 
-        PlanCompactText.Foreground = fgMuted;
+        PlanCompactText.Foreground = hasAccent ? FrozenBrush(accentColor) : fgMuted;
         GrpGeminiLbl.Foreground = fg;
         GrpClaudeLbl.Foreground = fg;
 
@@ -390,9 +607,7 @@ public partial class MainWindow : Window
     private static MediaBrush BrushFromHex(string hex)
     {
         var color = (MediaColor)System.Windows.Media.ColorConverter.ConvertFromString(hex);
-        var brush = new MediaBrush(color);
-        brush.Freeze();
-        return brush;
+        return FrozenBrush(color);
     }
 
     private async Task RefreshQuotaAsync(bool force)
@@ -534,7 +749,7 @@ public partial class MainWindow : Window
             : _snapshot.Stale
                 ? $"Stale (Last updated {updatedStr}): {_snapshot.ErrorMessage}"
                 : $"Error: {_snapshot.ErrorMessage}";
-        StatusDot.ToolTip = $"{statusLine}\nRight-click bar for Theme, Position & Interval";
+        StatusDot.ToolTip = $"{statusLine}\nDouble-click bar to expand · Right-click for settings";
     }
 
     private void UpdateCountdownsAndFooter()
@@ -585,13 +800,7 @@ public partial class MainWindow : Window
         menu.Items.Add(refreshItem);
 
         var expandItem = new MenuItem { Header = "Toggle Details" };
-        expandItem.Click += (_, _) =>
-        {
-            _settings.Expanded = !_settings.Expanded;
-            ApplyExpandedState(_settings.Expanded);
-            WidgetSettingsStore.Save(_settings);
-            RenderSnapshot();
-        };
+        expandItem.Click += (_, _) => ToggleExpanded();
         menu.Items.Add(expandItem);
 
         menu.Items.Add(new Separator());
@@ -631,7 +840,7 @@ public partial class MainWindow : Window
         menu.Items.Add(intervalMenu);
 
         var themeMenu = new MenuItem { Header = "Theme" };
-        foreach (var (label, mode) in new[] { ("Auto (Antigravity)", "auto"), ("Light", "light"), ("Dark", "dark") })
+        foreach (var (label, mode) in new[] { ("Auto (Antigravity Theme)", "auto"), ("Light", "light"), ("Dark", "dark") })
         {
             string capturedMode = mode;
             var item = new MenuItem
@@ -643,6 +852,7 @@ public partial class MainWindow : Window
             item.Click += (_, _) =>
             {
                 _settings.ThemeMode = capturedMode;
+                _lastConfigMtimeUtc = DateTime.MinValue;
                 WidgetSettingsStore.Save(_settings);
                 ApplyTheme();
                 RenderSnapshot();
@@ -651,6 +861,65 @@ public partial class MainWindow : Window
             themeMenu.Items.Add(item);
         }
         menu.Items.Add(themeMenu);
+
+        var opacityMenu = new MenuItem { Header = "Opacity" };
+        foreach (int pct in new[] { 100, 90, 80, 70, 60 })
+        {
+            int capturedPct = pct;
+            var item = new MenuItem
+            {
+                Header = $"{pct}%",
+                IsCheckable = true,
+                IsChecked = _settings.OpacityPercent == pct
+            };
+            item.Click += (_, _) =>
+            {
+                _settings.OpacityPercent = capturedPct;
+                WidgetSettingsStore.Save(_settings);
+                ApplyOpacity();
+                BuildContextMenu();
+            };
+            opacityMenu.Items.Add(item);
+        }
+        menu.Items.Add(opacityMenu);
+
+        menu.Items.Add(new Separator());
+
+        var focusOnlyItem = new MenuItem
+        {
+            Header = "Show only when Antigravity is active",
+            IsCheckable = true,
+            IsChecked = _settings.OnlyWhenAntigravityActive
+        };
+        focusOnlyItem.Click += (_, _) =>
+        {
+            _settings.OnlyWhenAntigravityActive = focusOnlyItem.IsChecked;
+            WidgetSettingsStore.Save(_settings);
+            if (_settings.OnlyWhenAntigravityActive)
+            {
+                _focusTimer.Start();
+                UpdateFocusVisibility();
+            }
+            else
+            {
+                _focusTimer.Stop();
+                Visibility = Visibility.Visible;
+            }
+        };
+        menu.Items.Add(focusOnlyItem);
+
+        var startupItem = new MenuItem
+        {
+            Header = "Start with Windows",
+            IsCheckable = true,
+            IsChecked = IsStartWithWindowsEnabled()
+        };
+        startupItem.Click += (_, _) =>
+        {
+            SetStartWithWindows(startupItem.IsChecked);
+            startupItem.IsChecked = IsStartWithWindowsEnabled();
+        };
+        menu.Items.Add(startupItem);
 
         var autoExitItem = new MenuItem
         {
@@ -685,10 +954,7 @@ public partial class MainWindow : Window
                 appIcon = System.Drawing.Icon.ExtractAssociatedIcon(exePath);
             }
         }
-        catch
-        {
-            // Fall back to generated icon below.
-        }
+        catch { }
 
         if (appIcon is null)
         {
@@ -706,11 +972,12 @@ public partial class MainWindow : Window
         }
 
         var trayMenu = new Forms.ContextMenuStrip();
-        trayMenu.Items.Add("Show / Focus", null, (_, _) =>
+        trayMenu.Items.Add("Show / Focus", null, (_, _) => Dispatcher.Invoke(() =>
         {
+            Visibility = Visibility.Visible;
             Show();
             Activate();
-        });
+        }));
         trayMenu.Items.Add("Refresh Now", null, async (_, _) => await RefreshQuotaAsync(force: true));
         trayMenu.Items.Add("Snap to Topbar Right", null, (_, _) => Dispatcher.Invoke(SnapToTopbarRight));
         trayMenu.Items.Add("Snap to Bottom-Left", null, (_, _) => Dispatcher.Invoke(SnapToBottomLeftSidebar));
@@ -724,11 +991,6 @@ public partial class MainWindow : Window
             Visible = true,
             ContextMenuStrip = trayMenu
         };
-        _trayIcon.DoubleClick += (_, _) => Dispatcher.Invoke(() =>
-        {
-            _settings.Expanded = !_settings.Expanded;
-            ApplyExpandedState(_settings.Expanded);
-            RenderSnapshot();
-        });
+        _trayIcon.DoubleClick += (_, _) => Dispatcher.Invoke(ToggleExpanded);
     }
 }

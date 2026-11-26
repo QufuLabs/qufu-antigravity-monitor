@@ -47,6 +47,8 @@ public sealed class WidgetSettings
     public string ThemeMode { get; set; } = "auto"; // auto | light | dark
     public bool Expanded { get; set; } = false;
     public bool AutoExitWithAntigravity { get; set; } = true;
+    public bool OnlyWhenAntigravityActive { get; set; } = false;
+    public int OpacityPercent { get; set; } = 100; // 60..100
 }
 
 public static class WidgetSettingsStore
@@ -72,6 +74,7 @@ public static class WidgetSettingsStore
                 if (parsed is not null)
                 {
                     parsed.RefreshIntervalSeconds = Math.Clamp(parsed.RefreshIntervalSeconds, 15, 3600);
+                    parsed.OpacityPercent = Math.Clamp(parsed.OpacityPercent, 50, 100);
                     if (parsed.ThemeMode is not ("auto" or "light" or "dark"))
                     {
                         parsed.ThemeMode = "auto";
