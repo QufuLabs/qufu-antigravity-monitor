@@ -454,6 +454,15 @@ public partial class MainWindow : Window
         ExpandBtn.ToolTip = expanded
             ? "Hide detailed progress bars (or double-click bar)"
             : "Show detailed progress bars (or double-click bar)";
+        RootBorder.Effect = expanded
+            ? new System.Windows.Media.Effects.DropShadowEffect
+            {
+                BlurRadius = 10,
+                ShadowDepth = 2,
+                Opacity = 0.22,
+                Color = Colors.Black
+            }
+            : null;
     }
 
     private void ApplyOpacity()

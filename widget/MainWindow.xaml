@@ -53,12 +53,9 @@
 
   <Border x:Name="RootBorder"
           CornerRadius="7"
-          BorderThickness="1"
+          BorderThickness="0"
           Padding="9,4"
           Margin="4">
-    <Border.Effect>
-      <DropShadowEffect BlurRadius="8" ShadowDepth="1" Opacity="0.14" Color="#000000" />
-    </Border.Effect>
 
     <StackPanel Orientation="Vertical">
       <!-- Compact single-line topbar strip -->
