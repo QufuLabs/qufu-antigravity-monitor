@@ -95,6 +95,23 @@ dotnet build .\widget\QufuUsageWidget.csproj -c Release
 - **No console window flashes:** Spawns `agy` directly with `shell: false` / `windowsHide: true` / `CreateNoWindow = true`.
 - **Resilient polling:** Single-flight concurrency lock, shared cache, `15s` timeout, exponential backoff (`15s`–`300s`), and honest stale indicators when offline.
 
+## FAQ
+
+**Does Qufu Antigravity Monitor consume model tokens or create background AI chats?**
+No. It runs the official `agy -p "/usage" --output-format json` command, which is handled directly by the Antigravity CLI with `num_turns: 0` and `total_tokens: 0`.
+
+**Does it modify Antigravity's `app.asar` or executable files?**
+No. The plugin uses Antigravity's official MCP Apps API (`aux_pane` and `global` entrypoints), and the optional Windows mini bar is a standalone read-only overlay that never patches or injects into Antigravity.
+
+**Which AI model quotas are tracked?**
+Both **Gemini Models** (5-hour and weekly limits) and **Claude & GPT Models** (5-hour and weekly limits), along with local 1-second reset countdowns.
+
+**Does it work on macOS and Linux?**
+The Antigravity **MCP App plugin** (`dist/mcp-server.mjs` + `dist/ui.html`) is cross-platform Node.js and works on Windows, macOS, and Linux. The optional always-on-top mini bar (`QufuUsageWidget.exe`) is Windows 10/11 only.
+
+**Why does it match my custom Antigravity theme automatically?**
+In `Auto (Antigravity Theme)` mode, the mini bar reads only your local appearance preference (`themeMode`, `customThemeSeedsDark`, `customThemeSeedsLight`) from `~/.gemini/config/config.json` and adapts its surface, border, and hover palette in real time.
+
 ## Credits
 
 Built with [Google Antigravity](https://github.com/google-antigravity). Licensed under the [MIT License](LICENSE).
